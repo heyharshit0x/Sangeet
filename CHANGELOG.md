@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1 - The "You" Update
+
+### Features
+- ✨ **Personalized Onboarding:** Brand new first-launch experience to set up your profile
+- 👋 **Dynamic Greetings:** Home screen now welcomes you by name (e.g., "Good Morning, Harshit")
+- 📊 **Basic Analytics:** Added user name collection (Powered by Supabase, privacy respected)
+- 🔧 **Settings UI:** Redesigned Developer section for better theme compatibility
+- 📱 **UI Improvements:** Fixed height overflow issues in settings and polished dialogs
+
+### Technical
+- Integrated Supabase for user name collection
+- Refactored home header for reactive updates
+- Fixed Windows build resource issues
+
 ## 1.0.0 - Initial Release
 
 ### Features
