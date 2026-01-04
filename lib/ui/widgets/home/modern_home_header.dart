@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../services/user_service.dart';
 
 class ModernHomeHeader extends StatelessWidget {
   const ModernHomeHeader({super.key});
@@ -6,18 +8,20 @@ class ModernHomeHeader extends StatelessWidget {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Good Morning!';
+      return 'Good Morning';
     } else if (hour < 17) {
-      return 'Good Afternoon!';
+      return 'Good Afternoon';
     } else if (hour < 21) {
-      return 'Good Evening!';
+      return 'Good Evening';
     } else {
-      return 'Good Night!';
+      return 'Good Night';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final userService = Get.find<UserService>();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -45,24 +49,14 @@ class ModernHomeHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _getGreeting(),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                    ),
-                    Text(
-                      'Music Lover',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                    ),
+                    Obx(() => Text(
+                          '${_getGreeting()}, ${userService.getUserName()}!',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                        )),
                   ],
                 ),
               ),

@@ -10,11 +10,13 @@ import '/ui/screens/Search/search_screen_controller.dart';
 import '/utils/get_localization.dart';
 import '/services/downloader.dart';
 import '/services/piped_service.dart';
+import '/services/user_service.dart';
 import 'utils/app_link_controller.dart';
 import '/services/audio_handler.dart';
 import '/services/music_service.dart';
 import '/ui/home.dart';
 import '/ui/player/player_controller.dart';
+import '/ui/screens/name_input_screen.dart';
 import 'ui/screens/Settings/settings_screen_controller.dart';
 import '/ui/utils/theme_controller.dart';
 import 'ui/screens/Home/home_screen_controller.dart';
@@ -25,6 +27,7 @@ import 'utils/update_check_flag_file.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initHive();
+  await UserService.initSupabase();
   _setAppInitPrefs();
   startApplicationServices();
   Get.put<AudioHandler>(await initAudioService(), permanent: true);
@@ -34,16 +37,41 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final userService = Get.find<UserService>();
+    final isFirstLaunch = await userService.checkFirstLaunch();
+
+    if (isFirstLaunch) {
+      userService.isFirstLaunch.value = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     if (!GetPlatform.isDesktop) Get.put(AppLinksController());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    final userService = Get.find<UserService>();
+
     return GetMaterialApp(
         title: 'Sangeet',
-        home: const Home(),
+        home: Obx(() => userService.isFirstLaunch.value
+            ? const NameInputScreen()
+            : const Home()),
         debugShowCheckedModeBanner: false,
         translations: Languages(),
         locale:
@@ -84,6 +112,7 @@ Future<void> startApplicationServices() async {
   Get.lazyPut(() => PipedServices(), fenix: true);
   Get.lazyPut(() => MusicServices(), fenix: true);
   Get.lazyPut(() => ThemeController(), fenix: true);
+  Get.lazyPut(() => UserService(), fenix: true);
   Get.lazyPut(() => PlayerController(), fenix: true);
   Get.lazyPut(() => HomeScreenController(), fenix: true);
   Get.lazyPut(() => LibrarySongsController(), fenix: true);
