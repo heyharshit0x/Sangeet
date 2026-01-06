@@ -124,137 +124,76 @@ class Body extends StatelessWidget {
                   }
                 }
               },
-              child: Obx(
-                () => homeScreenController.networkError.isTrue
-                    ? SizedBox(
-                        height: MediaQuery.of(context).size.height - 180,
-                        child: Column(
-                          children: [
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Text(
-                                "home".tr,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "networkError1".tr,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 10),
-                                        decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .titleLarge!
-                                                .color,
-                                            borderRadius:
-                                                BorderRadius.circular(10)),
-                                        child: InkWell(
-                                          onTap: () {
-                                            homeScreenController
-                                                .loadContentFromNetwork();
-                                          },
-                                          child: Text(
-                                            "retry".tr,
-                                            style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .canvasColor),
-                                          ),
-                                        ),
-                                      ),
-                                    ]),
-                              ),
-                            )
-                          ],
+              child: Obx(() {
+                homeScreenController.disposeDetachedScrollControllers();
+
+                if (!homeScreenController.isContentFetched.value) {
+                  return const HomeShimmer();
+                }
+
+                // Cache filtered content to avoid repeated calls
+                final filteredContent =
+                    homeScreenController.getFilteredContent();
+                final topSongs = homeScreenController.quickPicks.value.songList
+                    .take(5)
+                    .toList();
+
+                return ListView(
+                  padding: const EdgeInsets.only(bottom: 200, top: 40),
+                  cacheExtent: 500, // Preload widgets for smoother scrolling
+                  children: [
+                    const ModernHomeHeader(),
+                    const SizedBox(height: 20),
+                    FeaturedCardsCarousel(
+                      songs: homeScreenController.quickPicks.value.songList,
+                      sectionTitle: 'Curated & Trending',
+                    ),
+                    const SizedBox(height: 24),
+                    // Removed nested Obx - using cached filteredContent
+                    ...filteredContent.take(1).map((content) {
+                      final scrollController = ScrollController();
+                      homeScreenController.contentScrollControllers
+                          .add(scrollController);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: ContentListWidget(
+                          content: content,
+                          scrollController: scrollController,
                         ),
-                      )
-                    : Obx(() {
-                        homeScreenController.disposeDetachedScrollControllers();
-
-                        if (!homeScreenController.isContentFetched.value) {
-                          return const HomeShimmer();
-                        }
-
-                        return ListView(
-                          padding: const EdgeInsets.only(bottom: 200, top: 40),
-                          children: [
-                            const ModernHomeHeader(),
-                            const SizedBox(height: 20),
-                            FeaturedCardsCarousel(
-                              songs: homeScreenController
-                                  .quickPicks.value.songList,
-                              sectionTitle: 'Curated & Trending',
-                            ),
-                            const SizedBox(height: 24),
-                            Obx(() {
-                              final filteredContent =
-                                  homeScreenController.getFilteredContent();
-                              return Column(
-                                children:
-                                    filteredContent.take(1).map((content) {
-                                  final scrollController = ScrollController();
-                                  homeScreenController.contentScrollControllers
-                                      .add(scrollController);
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 20),
-                                    child: ContentListWidget(
-                                      content: content,
-                                      scrollController: scrollController,
-                                    ),
-                                  );
-                                }).toList(),
-                              );
-                            }),
-                            // Top Playlists/Albums Section
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Top Songs',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 22,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Display top songs from quickPicks
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Column(
-                                children: homeScreenController
-                                    .quickPicks.value.songList
-                                    .take(5)
-                                    .map((song) => ModernSongItem(song: song))
-                                    .toList(),
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-              ),
+                      );
+                    }),
+                    // Top Playlists/Albums Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Top Songs',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Use cached topSongs list
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        children: topSongs
+                            .map((song) => ModernSongItem(song: song))
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ),
             if (GetPlatform.isDesktop)
               Align(

@@ -2,7 +2,7 @@ name: sangeet
 description: A cross platform app for music streaming.
 publish_to: "none"
 
-version: 1.0.1+2
+version: 1.0.2+3
 
 
 environment:

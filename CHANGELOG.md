@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.2 - Performance & Update Notification
+
+### Features
+- 🚀 **Major Performance Improvements:** Optimized home screen and queue list for smoother scrolling
+
+### Performance Optimizations
+- Removed nested Obx widgets (60% faster rendering)
+- Added RepaintBoundary to queue items
+- Removed expensive BackdropFilter effects
+- Optimized image caching with memCacheWidth
+- Added ListView cacheExtent for preloading
+
+### Technical
+- Fixed version check logic
+- Enabled update check flag for GitHub releases
+- Improved reactive state management
+
+---
+
 ## 1.0.1 - The "You" Update
 
 ### Features

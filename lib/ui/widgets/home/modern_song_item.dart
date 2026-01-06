@@ -38,106 +38,91 @@ class ModernSongItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: _onLongPress,
-      child: InkWell(
-        onTap: _onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            children: [
-              // Album Art with blur and grey tint
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: song.artUri != null
-                        ? CachedNetworkImage(
-                            imageUrl: song.artUri.toString(),
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Theme.of(context).colorScheme.secondary,
-                              child: Icon(PhosphorIconsRegular.musicNote),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Theme.of(context).colorScheme.secondary,
-                              child: const Icon(Icons.music_note),
-                            ),
-                          )
-                        : Container(
+    return RepaintBoundary(
+      child: GestureDetector(
+        onLongPress: _onLongPress,
+        child: InkWell(
+          onTap: _onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                // Album Art - removed expensive BackdropFilter
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: song.artUri != null
+                      ? CachedNetworkImage(
+                          imageUrl: song.artUri.toString(),
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 120, // Optimize memory
+                          placeholder: (context, url) => Container(
                             width: 60,
                             height: 60,
                             color: Theme.of(context).colorScheme.secondary,
                             child: const Icon(Icons.music_note),
                           ),
-                  ),
-                  // Blur and grey overlay
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(8),
+                          errorWidget: (context, url, error) => Container(
+                            width: 60,
+                            height: 60,
+                            color: Theme.of(context).colorScheme.secondary,
+                            child: const Icon(Icons.music_note),
+                          ),
+                        )
+                      : Container(
+                          width: 60,
+                          height: 60,
+                          color: Theme.of(context).colorScheme.secondary,
+                          child: const Icon(Icons.music_note),
                         ),
+                ),
+                const SizedBox(width: 12),
+                // Title and Subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        song.title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        song.artist ?? 'Unknown Artist',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              // Title and Subtitle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      song.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      song.artist ?? 'Unknown Artist',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ),
-              ),
-              // Play icon only (no background)
-              IconButton(
-                icon: Icon(
-                  PhosphorIconsFill.playCircle,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 40,
+                // Play icon
+                IconButton(
+                  icon: Icon(
+                    PhosphorIconsFill.playCircle,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 40,
+                  ),
+                  onPressed: _onTap,
+                  padding: EdgeInsets.zero,
                 ),
-                onPressed: _onTap,
-                padding: EdgeInsets.zero,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
