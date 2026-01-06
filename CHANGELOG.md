@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.2 - Performance & Update Notification
+## 1.0.2 - Performance
 
 ### Features
 - 🚀 **Major Performance Improvements:** Optimized home screen and queue list for smoother scrolling
@@ -11,6 +11,9 @@
 - Removed expensive BackdropFilter effects
 - Optimized image caching with memCacheWidth
 - Added ListView cacheExtent for preloading
+
+### Bug Fixes
+- 🪟 **Windows:** Fixed mini player customization options not showing
 
 ### Technical
 - Fixed version check logic
