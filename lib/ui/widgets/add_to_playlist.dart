@@ -18,6 +18,8 @@ class AddToPlaylist extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final addToPlaylistController = Get.put(AddToPlaylistController());
+    // Initialize with current songs
+    addToPlaylistController.setSongsToAdd(songItems);
     final isPipedLinked = Get.find<PipedServices>().isLoggedIn;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -89,7 +91,8 @@ class AddToPlaylist extends StatelessWidget {
                                       .withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: theme.dividerColor.withValues(alpha: 0.1),
+                                    color: theme.dividerColor
+                                        .withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Row(
@@ -139,7 +142,8 @@ class AddToPlaylist extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: theme.primaryColor.withValues(alpha: 0.3),
+                                  color:
+                                      theme.primaryColor.withValues(alpha: 0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -306,22 +310,62 @@ class AddToPlaylist extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          controller
-              .addSongsToPlaylist(songItems, playlist.playlistId, context)
-              .then((value) {
-            if (!context.mounted) return;
-            if (value) {
-              ScaffoldMessenger.of(context).showSnackBar(snackbar(
-                  context, "songAddedToPlaylistAlert".tr,
-                  size: SanckBarSize.MEDIUM));
+          final songExists =
+              controller.songExistsInPlaylist[playlist.playlistId] ?? false;
+
+          if (songExists) {
+            // Remove songs from playlist
+            controller
+                .removeSongsFromPlaylist(
+                    songItems, playlist.playlistId, context)
+                .then((result) {
+              if (!context.mounted) return;
+
+              final removed = result['removed'] as int;
+              final success = result['success'] as bool;
+
+              String message;
+              if (success && removed > 0) {
+                message = removed == 1
+                    ? "Song removed from playlist"
+                    : "$removed songs removed from playlist";
+              } else {
+                message = "errorOccuredAlert".tr;
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                  snackbar(context, message, size: SanckBarSize.MEDIUM));
               Navigator.of(context).pop();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(snackbar(
-                  context, "songAlreadyExists".tr,
-                  size: SanckBarSize.MEDIUM));
+            });
+          } else {
+            // Add songs to playlist
+            controller
+                .addSongsToPlaylist(songItems, playlist.playlistId, context)
+                .then((result) {
+              if (!context.mounted) return;
+
+              final added = result['added'] as int;
+              final skipped = result['skipped'] as int;
+              final success = result['success'] as bool;
+
+              String message;
+              if (!success && added == 0) {
+                message = "errorOccuredAlert".tr;
+              } else if (added > 0 && skipped == 0) {
+                message = "songAddedToPlaylistAlert".tr;
+              } else if (added > 0 && skipped > 0) {
+                message = "$added added, $skipped already in playlist";
+              } else if (skipped > 0) {
+                message = "songAlreadyExists".tr;
+              } else {
+                message = "errorOccuredAlert".tr;
+              }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                  snackbar(context, message, size: SanckBarSize.MEDIUM));
               Navigator.of(context).pop();
-            }
-          });
+            });
+          }
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -391,14 +435,38 @@ class AddToPlaylist extends StatelessWidget {
                 ),
               ),
 
-              // Action Icon
+              // Action Icon - Show checkmark if song exists, otherwise add icon
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: Theme.of(context).primaryColor,
-                  size: 28,
-                ),
+                child: Obx(() {
+                  final songExists =
+                      controller.songExistsInPlaylist[playlist.playlistId] ??
+                          false;
+
+                  return Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: songExists
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: songExists
+                            ? Colors.green
+                            : Theme.of(context).primaryColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      songExists ? Icons.check_rounded : Icons.add_rounded,
+                      color: songExists
+                          ? Colors.green
+                          : Theme.of(context).primaryColor,
+                      size: 20,
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -412,8 +480,11 @@ class AddToPlaylistController extends GetxController {
   final RxList<Playlist> playlists = RxList();
   final playlistType = "local".obs;
   final additionInProgress = false.obs;
+  final RxMap<String, bool> songExistsInPlaylist = RxMap();
   List<Playlist> localPlaylists = [];
   List<Playlist> pipedPlaylists = [];
+  List<MediaItem> currentSongs = [];
+
   AddToPlaylistController() {
     _getAllPlaylist();
   }
@@ -440,34 +511,141 @@ class AddToPlaylistController extends GetxController {
           .whereType<Playlist>()
           .toList();
     }
+    await _checkSongExistence();
+  }
+
+  Future<void> refreshPlaylists() async {
+    await _getAllPlaylist();
+  }
+
+  void setSongsToAdd(List<MediaItem> songs) {
+    currentSongs = songs;
+    _checkSongExistence();
+  }
+
+  Future<void> _checkSongExistence() async {
+    if (currentSongs.isEmpty) return;
+
+    songExistsInPlaylist.clear();
+
+    for (final playlist in playlists) {
+      if (playlist.isPipedPlaylist) {
+        // Can't check piped playlists easily
+        songExistsInPlaylist[playlist.playlistId] = false;
+      } else {
+        try {
+          final plstBox = await Hive.openBox(playlist.playlistId);
+          final playlistSongIds = plstBox.values
+              .map((item) => item['videoId'])
+              .whereType<String>()
+              .toList();
+
+          // Check if ANY of the current songs exist in this playlist
+          final hasAnySong =
+              currentSongs.any((song) => playlistSongIds.contains(song.id));
+          songExistsInPlaylist[playlist.playlistId] = hasAnySong;
+
+          await plstBox.close();
+        } catch (e) {
+          songExistsInPlaylist[playlist.playlistId] = false;
+        }
+      }
+    }
   }
 
   void changePlaylistType(val) {
     playlistType.value = val;
     playlists.value = val == "piped" ? pipedPlaylists : localPlaylists;
+    _checkSongExistence();
   }
 
-  Future<bool> addSongsToPlaylist(
+  Future<Map<String, dynamic>> addSongsToPlaylist(
       List<MediaItem> songs, String playlistId, BuildContext context) async {
     additionInProgress.value = true;
+    int addedCount = 0;
+    int skippedCount = 0;
+
     if (playlistType.value == "local") {
       final plstBox = await Hive.openBox(playlistId);
-      final playlistSongIds = plstBox.values.map((item) => item['videoId']);
+      final playlistSongIds = plstBox.values
+          .map((item) => item['videoId'])
+          .whereType<String>()
+          .toList();
+
       for (MediaItem element in songs) {
         if (!playlistSongIds.contains(element.id)) {
           await plstBox.add(MediaItemBuilder.toJson(element));
+          addedCount++;
+        } else {
+          skippedCount++;
         }
       }
       await plstBox.close();
-      additionInProgress.value = false;
-      return true;
     } else {
       final videosId = songs.map((e) => e.id).toList();
       final res =
           await Get.find<PipedServices>().addToPlaylist(playlistId, videosId);
       additionInProgress.value = false;
-      return (res.code == 1);
+      return {
+        'success': res.code == 1,
+        'added': res.code == 1 ? songs.length : 0,
+        'skipped': 0,
+      };
     }
+
+    additionInProgress.value = false;
+    await _checkSongExistence();
+
+    return {
+      'success': addedCount > 0,
+      'added': addedCount,
+      'skipped': skippedCount,
+    };
+  }
+
+  Future<Map<String, dynamic>> removeSongsFromPlaylist(
+      List<MediaItem> songs, String playlistId, BuildContext context) async {
+    additionInProgress.value = true;
+    int removedCount = 0;
+
+    if (playlistType.value == "local") {
+      final plstBox = await Hive.openBox(playlistId);
+      final keysToDelete = <dynamic>[];
+
+      // Find all keys that match the song IDs
+      for (var key in plstBox.keys) {
+        final item = plstBox.get(key);
+        if (item != null && item is Map) {
+          final videoId = item['videoId'];
+          if (songs.any((song) => song.id == videoId)) {
+            keysToDelete.add(key);
+          }
+        }
+      }
+
+      // Delete all matching songs
+      for (var key in keysToDelete) {
+        await plstBox.delete(key);
+        removedCount++;
+      }
+
+      await plstBox.close();
+    } else {
+      // Piped playlists - would need API support for removal
+      additionInProgress.value = false;
+      return {
+        'success': false,
+        'removed': 0,
+      };
+    }
+
+    additionInProgress.value = false;
+    await _checkSongExistence();
+
+    return {
+      'success': removedCount > 0,
+      'removed': removedCount,
+    };
   }
 
   // Future<bool> addSongToPlaylist(

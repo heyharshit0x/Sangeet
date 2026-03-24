@@ -403,6 +403,12 @@ class LibraryPlaylistsController extends GetxController
 
       libraryPlaylists.add(newplst);
 
+      // Refresh AddToPlaylistController if it's registered (dialog is open)
+      if (Get.isRegistered<AddToPlaylistController>()) {
+        final addToPlstController = Get.find<AddToPlaylistController>();
+        await addToPlstController.refreshPlaylists();
+      }
+
       if (createPlaylistNaddSong && playlistCreationMode.value == "local") {
         final plastbox = await Hive.openBox(newplst.playlistId);
         for (MediaItem item in songItems!) {

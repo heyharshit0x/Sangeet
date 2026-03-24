@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
 import 'package:hive/hive.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
@@ -14,6 +14,7 @@ import '/services/synced_lyrics_service.dart';
 import '/ui/screens/Settings/settings_screen_controller.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../services/windows_audio_service.dart';
+import '../../services/discord_rpc_service.dart';
 import '../../utils/helper.dart';
 import '/models/media_Item_builder.dart';
 import '../screens/Home/home_screen_controller.dart';
@@ -63,11 +64,18 @@ class PlayerController extends GetxController
   final showLyricsflag = false.obs;
   final isLyricsLoading = false.obs;
   final lyricsMode = 0.obs;
+  final showMobileLyrics = false.obs; // Toggle for mobile lyrics visibility
   bool isDesktopLyricsDialogOpen = false;
   // 0 for play, 1 for pause, 2 for blank
   final gesturePlayerVisibleState = 2.obs;
-  final lyricUi =
-      UINetease(highlight: true, defaultSize: 20, defaultExtSize: 12);
+  final lyricUi = UINetease(
+    highlight: true,
+    defaultSize:
+        30, // UINetease uses this for OTHER/non-active lines (confusing!)
+    defaultExtSize: 30, // Extended lyrics
+    otherMainSize: 18, // UINetease uses this for MAIN/active line (confusing!)
+    inlineGap: 25, // Gap between lines
+  );
   RxMap<String, dynamic> lyrics =
       <String, dynamic>{"synced": "", "plainLyrics": ""}.obs;
   ScrollController scrollController = ScrollController();
@@ -93,6 +101,7 @@ class PlayerController extends GetxController
   void onReady() {
     if (GetPlatform.isWindows) {
       Get.put(WindowsAudioService());
+      Get.put(DiscordRPCService());
     }
     _restorePrevSession();
     super.onReady();
@@ -764,6 +773,46 @@ class PlayerController extends GetxController
         lyrics.value = {"synced": "", "plainLyrics": "NA"};
       }
       isLyricsLoading.value = false;
+    }
+  }
+
+  /// Load lyrics for desktop panel without toggling showLyricsflag
+  Future<void> loadLyricsForDesktop() async {
+    printINFO("loadLyricsForDesktop called");
+    if (lyrics["synced"].isEmpty && lyrics['plainLyrics'].isEmpty) {
+      printINFO("Lyrics are empty, starting to load...");
+      isLyricsLoading.value = true;
+      try {
+        printINFO("Fetching synced lyrics from lrclib.net...");
+        final Map<String, dynamic>? lyricsR =
+            await SyncedLyricsService.getSyncedLyrics(
+                currentSong.value!, progressBarStatus.value.total.inSeconds);
+        if (lyricsR != null) {
+          printINFO("Synced lyrics found! Setting lyrics...");
+          lyrics.value = lyricsR;
+          isLyricsLoading.value = false;
+          return;
+        }
+        printINFO("Synced lyrics not found, trying YouTube Music API...");
+        final related = await _musicServices.getWatchPlaylist(
+            videoId: currentSong.value!.id, onlyRelated: true);
+        final relatedLyricsId = related['lyrics'];
+        if (relatedLyricsId != null) {
+          printINFO("Found lyrics ID from YT Music: $relatedLyricsId");
+          final lyrics_ = await _musicServices.getLyrics(relatedLyricsId);
+          printINFO("Got plain lyrics: ${lyrics_.substring(0, 50)}...");
+          lyrics.value = {"synced": "", "plainLyrics": lyrics_};
+        } else {
+          printINFO("No lyrics found anywhere, setting NA");
+          lyrics.value = {"synced": "", "plainLyrics": "NA"};
+        }
+      } catch (e) {
+        printERROR("Error loading lyrics: $e");
+        lyrics.value = {"synced": "", "plainLyrics": "NA"};
+      }
+      isLyricsLoading.value = false;
+    } else {
+      printINFO("Lyrics already loaded, skipping...");
     }
   }
 

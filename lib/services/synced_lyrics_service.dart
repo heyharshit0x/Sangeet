@@ -12,7 +12,18 @@ class SyncedLyricsService {
       return Map<String, dynamic>.from(await lyricsBox.get(song.id));
     }
 
-    final dur = song.duration?.inSeconds ?? durInSec;
+    // duration and validate it's within lrclib.net API limits (1-3600 seconds)
+    int dur = song.duration?.inSeconds ?? durInSec;
+
+    // Clamp duration to valid range: 1-3600 seconds (1 hour max)
+    if (dur <= 0) {
+      printWarning("Invalid duration: $dur, defaulting to 180 seconds");
+      dur = 180; // Default to 3 minutes if invalid
+    } else if (dur > 3600) {
+      printWarning("Duration $dur exceeds API limit, clamping to 3600 seconds");
+      dur = 3600; // Max allowed by API :(
+    }
+
     final url =
         'https://lrclib.net/api/get?artist_name=${song.artist?.replaceAll(" ", "+")}&track_name=${song.title.replaceAll(" ", "+")}&album_name=${song.album?.replaceAll(" ", "+")}&duration=$dur';
     try {

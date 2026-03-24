@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '/ui/player/components/lyrics_widget.dart';
 import '/ui/player/player_controller.dart';
 import '../../widgets/image_widget.dart';
 import '../../widgets/sleep_timer_bottom_sheet.dart';
@@ -13,10 +12,8 @@ class AlbumArtNLyrics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final PlayerController playerController = Get.find<PlayerController>();
-    //final size = MediaQuery.of(context).size;
-    //double playerArtImageSize = size.width - ((size.height < 750) ? 90 : 60);
+
     return Obx(() => playerController.currentSong.value != null
         ? Stack(
             children: [
@@ -38,11 +35,7 @@ class AlbumArtNLyrics extends StatelessWidget {
                     ),
                   ).whenComplete(() => Get.delete<SongInfoController>());
                 },
-                onTap: () {
-                  playerController.showLyrics();
-                },
                 onHorizontalDragEnd: (DragEndDetails details) {
-                  if (playerController.showLyricsflag.isTrue) return;
                   if (details.primaryVelocity! < 0) {
                     playerController.next();
                   } else if (details.primaryVelocity! > 0) {
@@ -55,66 +48,10 @@ class AlbumArtNLyrics extends StatelessWidget {
                   isPlayerArtImage: true,
                 ),
               ),
-              Obx(() => playerController.showLyricsflag.isTrue
-                  ? InkWell(
-                      onTap: () {
-                        playerController.showLyrics();
-                      },
-                      child: Container(
-                        height: playerArtImageSize,
-                        width: playerArtImageSize,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Stack(
-                          children: [
-                            LyricsWidget(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 0,
-                                    vertical: playerArtImageSize / 3.5)),
-                            IgnorePointer(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(5),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: isDark
-                                        ? [
-                                            Colors.black
-                                                .withValues(alpha: 0.90),
-                                            Colors.transparent,
-                                            Colors.transparent,
-                                            Colors.transparent,
-                                            Colors.black.withValues(alpha: 0.90)
-                                          ]
-                                        : [
-                                            Theme.of(context)
-                                                .primaryColor
-                                                .withValues(alpha: 0.90),
-                                            Colors.transparent,
-                                            Colors.transparent,
-                                            Colors.transparent,
-                                            Theme.of(context)
-                                                .primaryColor
-                                                .withValues(alpha: 0.90)
-                                          ],
-                                    stops: const [0, 0.2, 0.5, 0.8, 1],
-                                  ),
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    )
-                  : const SizedBox.shrink()),
               if (playerController.isSleepTimerActive.isTrue)
                 SizedBox(
                   width: playerArtImageSize,
                   height: playerArtImageSize,
-                  //color: Colors.green,
                   child: Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(

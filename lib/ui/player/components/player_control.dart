@@ -150,6 +150,48 @@ class PlayerControlWidget extends StatelessWidget {
               }),
             ],
           ),
+          // Volume control - only show on desktop
+          if (GetPlatform.isDesktop) ...[
+            const SizedBox(height: 15),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Obx(() {
+                final volume = playerController.volume.value;
+                return Row(
+                  children: [
+                    Icon(
+                      volume == 0
+                          ? Icons.volume_off
+                          : volume > 0 && volume < 50
+                              ? Icons.volume_down
+                              : Icons.volume_up,
+                      color: Theme.of(context).textTheme.titleMedium!.color,
+                      size: 20,
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: volume.toDouble(),
+                        min: 0,
+                        max: 100,
+                        onChanged: (value) {
+                          playerController.volume.value = value.toInt();
+                          playerController.setVolume(value.toInt());
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: 35,
+                      child: Text(
+                        '${volume.toInt()}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ],
         ]);
   }
 

@@ -7,7 +7,7 @@ import '../../widgets/songinfo_bottom_sheet.dart';
 import '../player_controller.dart';
 import 'albumart_lyrics.dart';
 import 'backgroud_image.dart';
-import 'lyrics_switch.dart';
+import 'lyrics_panel.dart';
 import 'player_control.dart';
 
 /// Standard player widget
@@ -88,80 +88,308 @@ class StandardPlayer extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 25, right: 25),
           child: (context.isLandscape)
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    /// Album art with lyrics in .45  of width
-                    SizedBox(
-                      width: size.width * .45,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: 90.0,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 40),
-                          child: Center(
-                            child: AlbumArtNLyrics(
-                              playerArtImageSize: size.width * .29,
+              ? GetPlatform.isDesktop
+                  ?
+                  // Desktop landscape: Album art | Lyrics panel | Controls
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        /// Left: Album art
+                        SizedBox(
+                          width: size.width * .30,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: 90.0,
+                              top: 40,
+                            ),
+                            child: Center(
+                              child: AlbumArtNLyrics(
+                                playerArtImageSize: size.width * .25,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
 
-                    /// Player controls in .48 of width
-                    SizedBox(
-                        width: size.width * .48,
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                              left: 10.0,
-                              right: 10,
-                              bottom: Get.mediaQuery.padding.bottom),
-                          child: const PlayerControlWidget(),
-                        ))
-                  ],
-                )
+                        const SizedBox(width: 15),
+
+                        /// Middle: Lyrics panel
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 40, bottom: 90),
+                            child: const LyricsPanel(),
+                          ),
+                        ),
+
+                        const SizedBox(width: 15),
+
+                        /// Right: Player controls
+                        SizedBox(
+                            width: size.width * .28,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                  left: 10.0,
+                                  right: 10,
+                                  bottom: Get.mediaQuery.padding.bottom),
+                              child: const PlayerControlWidget(),
+                            ))
+                      ],
+                    )
+                  :
+                  // Mobile landscape: Original layout
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        /// Album art with lyrics in .45  of width
+                        SizedBox(
+                          width: size.width * .45,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: 90.0,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 40),
+                              child: Center(
+                                child: AlbumArtNLyrics(
+                                  playerArtImageSize: size.width * .29,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        /// Player controls in .48 of width
+                        SizedBox(
+                            width: size.width * .48,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                  left: 10.0,
+                                  right: 10,
+                                  bottom: Get.mediaQuery.padding.bottom),
+                              child: const PlayerControlWidget(),
+                            ))
+                      ],
+                    )
               :
 
               /// Player content in portrait mode
-              Column(
-                  children: [
-                    /// Work as top padding depending on the lyrics visibility and screen size
-                    Obx(
-                      () => playerController.showLyricsflag.value
-                          ? SizedBox(
-                              height: size.height < 750 ? 60 : 90,
-                            )
-                          : SizedBox(
-                              height: size.height < 750 ? 110 : 140,
-                            ),
-                    ),
-
-                    /// Contains the lyrics switch and album art with lyrics
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              GetPlatform.isDesktop
+                  ?
+                  // Desktop layout: Side-by-side album art and lyrics
+                  Column(
                       children: [
-                        const LyricsSwitch(),
-                        ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 500),
-                            child: AlbumArtNLyrics(
-                                playerArtImageSize: playerArtImageSize)),
+                        /// Top padding - reduced for more lyrics space
+                        const SizedBox(
+                          height: 60,
+                        ),
+
+                        /// Main content area: Album art and Lyrics panel side by side
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                /// Left side: Album Art
+                                Expanded(
+                                  flex: 1,
+                                  child: Center(
+                                    child: AlbumArtNLyrics(
+                                      playerArtImageSize: size.width * 0.42,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 12),
+
+                                /// Right side: Lyrics Panel
+                                Expanded(
+                                  flex: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 25),
+                                    child: const LyricsPanel(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        /// Contains the player controls - moved lower
+                        Padding(
+                          padding: EdgeInsets.only(
+                              bottom: 20 + Get.mediaQuery.padding.bottom,
+                              top: 15),
+                          child: Container(
+                              constraints: const BoxConstraints(maxWidth: 500),
+                              child: const PlayerControlWidget()),
+                        )
+                      ],
+                    )
+                  :
+                  // Mobile layout: Animated with lyrics toggle
+                  Column(
+                      children: [
+                        /// Scrollable content area
+                        Expanded(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Obx(() {
+                              final showLyrics =
+                                  playerController.showMobileLyrics.value;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                                child: Column(
+                                  children: [
+                                    /// Top padding - adjusts based on lyrics visibility
+                                    AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 400),
+                                      curve: Curves.easeInOut,
+                                      height: showLyrics
+                                          ? 60
+                                          : (size.height < 750 ? 110 : 140),
+                                    ),
+
+                                    /// Album art - moves up when lyrics shown
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                                maxWidth: 500),
+                                            child: AlbumArtNLyrics(
+                                                playerArtImageSize:
+                                                    playerArtImageSize)),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    /// Lyrics toggle button
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      child: ConstrainedBox(
+                                        constraints:
+                                            const BoxConstraints(maxWidth: 500),
+                                        child: InkWell(
+                                          onTap: () {
+                                            playerController
+                                                    .showMobileLyrics.value =
+                                                !playerController
+                                                    .showMobileLyrics.value;
+                                            // Load lyrics when showing for the first time
+                                            if (playerController
+                                                    .showMobileLyrics.value &&
+                                                playerController
+                                                    .lyrics["synced"].isEmpty &&
+                                                playerController
+                                                    .lyrics['plainLyrics']
+                                                    .isEmpty) {
+                                              playerController
+                                                  .loadLyricsForDesktop();
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 10),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .cardColor
+                                                  .withValues(alpha: 0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: Theme.of(context)
+                                                    .dividerColor
+                                                    .withValues(alpha: 0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  showLyrics
+                                                      ? Icons
+                                                          .keyboard_arrow_up_rounded
+                                                      : Icons
+                                                          .keyboard_arrow_down_rounded,
+                                                  size: 20,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  showLyrics
+                                                      ? 'Hide Lyrics'
+                                                      : 'Show Lyrics',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyMedium,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    /// Animated Lyrics Panel
+                                    AnimatedSize(
+                                      duration:
+                                          const Duration(milliseconds: 400),
+                                      curve: Curves.easeInOut,
+                                      child: showLyrics
+                                          ? Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 16),
+                                              child: AnimatedOpacity(
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                opacity: showLyrics ? 1.0 : 0.0,
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 20),
+                                                  child: ConstrainedBox(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                            maxWidth: 500),
+                                                    child: SizedBox(
+                                                      height:
+                                                          400, // Fixed height for lyrics
+                                                      child:
+                                                          const LyricsPanel(),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+
+                                    /// Bottom padding for scroll
+                                    const SizedBox(height: 100),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+
+                        /// Fixed player controls at bottom
+                        Padding(
+                          padding: EdgeInsets.only(
+                              bottom: 80 + Get.mediaQuery.padding.bottom),
+                          child: Container(
+                              constraints: const BoxConstraints(maxWidth: 500),
+                              child: const PlayerControlWidget()),
+                        )
                       ],
                     ),
-
-                    /// Extra space container
-                    Expanded(child: Container()),
-
-                    /// Contains the player controls
-                    Padding(
-                      padding: EdgeInsets.only(
-                          bottom: 80 + Get.mediaQuery.padding.bottom),
-                      child: Container(
-                          constraints: const BoxConstraints(maxWidth: 500),
-                          child: const PlayerControlWidget()),
-                    )
-                  ],
-                ),
         ),
 
         /// Stack child

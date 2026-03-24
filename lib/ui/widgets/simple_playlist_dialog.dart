@@ -450,11 +450,12 @@ class _SimplePlaylistDialogState extends State<SimplePlaylistDialog> {
                                       } else {
                                         controller.textInputController.text =
                                             _textController.text;
-                                        await controller.createNewPlaylist(
+                                        final success =
+                                            await controller.createNewPlaylist(
                                           iconIndex: selectedIconIndex,
                                           colorIndex: selectedColorIndex,
                                         );
-                                        if (context.mounted) {
+                                        if (context.mounted && success) {
                                           Navigator.pop(context);
                                         }
                                       }

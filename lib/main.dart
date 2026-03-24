@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:terminate_restart/terminate_restart.dart';
+import 'package:discord_rpc/discord_rpc.dart';
 
 import '/ui/screens/Search/search_screen_controller.dart';
 import '/utils/get_localization.dart';
@@ -26,6 +27,12 @@ import 'utils/update_check_flag_file.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Discord RPC on Windows
+  if (GetPlatform.isWindows) {
+    DiscordRPC.initialize();
+  }
+
   await initHive();
   await UserService.initSupabase();
   _setAppInitPrefs();

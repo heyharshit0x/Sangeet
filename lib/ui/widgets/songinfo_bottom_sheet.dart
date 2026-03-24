@@ -460,6 +460,63 @@ class SongInfoBottomSheet extends StatelessWidget {
                         );
                       },
                     ),
+                  // Volume control for Android
+                  if (calledFromPlayer && !GetPlatform.isDesktop)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Obx(() {
+                        final volume = playerController.volume.value;
+                        return Row(
+                          children: [
+                            Icon(
+                              volume == 0
+                                  ? PhosphorIconsRegular.speakerSlash
+                                  : volume > 0 && volume < 50
+                                      ? PhosphorIconsRegular.speakerLow
+                                      : PhosphorIconsRegular.speakerHigh,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withValues(alpha: 0.7),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Volume",
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  Slider(
+                                    value: volume.toDouble(),
+                                    min: 0,
+                                    max: 100,
+                                    onChanged: (value) {
+                                      playerController.volume.value =
+                                          value.toInt();
+                                      playerController.setVolume(value.toInt());
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              width: 35,
+                              child: Text(
+                                '${volume.toInt()}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
                   _buildMenuItem(
                     context,
                     icon: PhosphorIconsRegular.shareNetwork,

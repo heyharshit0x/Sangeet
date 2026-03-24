@@ -265,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  discord_rpc:
+    dependency: "direct main"
+    description:
+      name: discord_rpc
+      sha256: da0d891af04a97bd2e0ffc6f5fc1ec49511b7b9d2dcce9a5e2814e5039e98384
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   fake_async:
     dependency: transitive
     description:
@@ -1119,14 +1127,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  smtc_windows:
-    dependency: "direct main"
-    description:
-      name: smtc_windows
-      sha256: "0fd64d0c6a0c8ea4ea7908d31195eadc8f6d45d5245159fc67259e9e8704100f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.3"
   source_span:
     dependency: transitive
     description:
